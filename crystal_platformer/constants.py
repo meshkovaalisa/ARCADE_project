@@ -1,0 +1,12 @@
+import arcade
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+SCREEN_TITLE = "Crystal Platformer"
+BG_COLOR = arcade.color.DARK_SLATE_GRAY
+
+MENU_TITLE_SIZE = 40
+MENU_HINT_SIZE = 20
+TEXT_COLOR = arcade.color.WHITE
+
+FPS = 60
