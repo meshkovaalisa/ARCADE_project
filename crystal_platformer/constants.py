@@ -10,3 +10,10 @@ MENU_HINT_SIZE = 20
 TEXT_COLOR = arcade.color.WHITE
 
 FPS = 60
+
+PLAYER_SPEED = 300
+PLAYER_SCALE = 1.0
+TEXTURE_PATH_PREFIX = ":resources:/images/animated_characters/male_person/"
+TEXTURE_FILE_PREFIX = "malePerson_"
+WALK_FRAMES_COUNT = 8
+TEXTURE_CHANGE_DELAY = 0.1
