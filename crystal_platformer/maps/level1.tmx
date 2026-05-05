@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="20" height="20" tilewidth="70" tileheight="70" infinite="0" nextlayerid="6" nextobjectid="1">
+ <tileset firstgid="1" source="tiles.tsx"/>
+ <layer id="4" name="collision" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJy9lDEOACAIAxn5/4tdCRFosZHEReghpupm5uIVo9pHotNtuEh9l889t3NVWuQ+Oy3TI/e7aRHexNnwqnolD/Evy5sC8bOKF/OoTxk/q+ZVnA99DwxvEy//wU+ech0LsgQx
+  </data>
+ </layer>
+ <layer id="2" name="walls" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJy9lDEOACAIAxn4/5tdCRFosZHEReghpupm5uIVo9pHotNtuEh9l889t3NVWuQ+Oy3TI/e7aRHexNnwqnolD/Evy5sC8bOKF/OoTxk/q+ZVnA99DwxvEy//wU+ech0I+QIZ
+  </data>
+ </layer>
+ <layer id="5" name="coins" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgeQHKImTsYwWD162B1F7kA3T/09J8kDja5ZtASSKLRgwEQ6xZi1GFTM5j8SgwAAKlJAXg=
+  </data>
+ </layer>
+</map>
