@@ -1,5 +1,6 @@
 import arcade
 from crystal_platformer.constants import *
+from views.pause_view import PauseView
 
 
 class GameView(arcade.View):
@@ -82,7 +83,6 @@ class GameView(arcade.View):
 
         self.gui_camera.position = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         self._update_camera(delta_time)
-        self._update_camera(delta_time)
         self.update_animation(delta_time)
 
     def on_key_press(self, key, modifiers):
@@ -96,6 +96,9 @@ class GameView(arcade.View):
             self.down = True
         if key == arcade.key.SPACE and self.physics_engine.can_jump():
             self.physics_engine.jump(JUMP_STRENGTH)
+        if key == arcade.key.ESCAPE:
+            pause_view = PauseView(self)
+            self.window.show_view(pause_view)
 
     def on_key_release(self, key, modifiers):
         if key in (arcade.key.LEFT, arcade.key.A):
