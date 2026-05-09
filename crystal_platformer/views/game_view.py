@@ -38,6 +38,7 @@ class GameView(arcade.View):
         self.walls = tile_map.sprite_lists["walls"]
         self.collision = tile_map.sprite_lists["collision"]
         self.coins = tile_map.sprite_lists.get("coins", arcade.SpriteList())
+        self.ladders = tile_map.sprite_lists.get("ladders", arcade.SpriteList())
 
         self.world_camera = arcade.Camera2D()
         self.gui_camera = arcade.Camera2D()
@@ -47,6 +48,7 @@ class GameView(arcade.View):
             gravity_constant=GRAVITY,
             walls=self.collision
         )
+        self.on_ladder = False
         self.world_width = int(tile_map.width * tile_map.tile_width * TILE_SCALING)
         self.world_height = int(tile_map.height * tile_map.tile_height * TILE_SCALING)
         self.score_text = arcade.Text(
@@ -66,6 +68,7 @@ class GameView(arcade.View):
 
         self.world_camera.use()
         self.walls.draw()
+        self.ladders.draw()
         self.coins.draw()
         self.player_list.draw()
         for emitter in self.emitters:
@@ -75,12 +78,24 @@ class GameView(arcade.View):
         self.score_text.draw()
 
     def on_update(self, delta_time):
-        dx = 0
-        if self.left and not self.right:
-            dx = -1
-        elif self.right and not self.left:
-            dx = 1
-        self.player.change_x = dx * PLAYER_SPEED
+        self.on_ladder = len(arcade.check_for_collision_with_list(self.player, self.ladders)) > 0
+        if self.on_ladder:
+            self.physics_engine.gravity_constant = 0
+            if self.up:
+                self.player.change_y = LADDER_SPEED
+            elif self.down:
+                self.player.change_y = -LADDER_SPEED
+            else:
+                self.player.change_y = 0
+        else:
+            self.physics_engine.gravity_constant = GRAVITY
+
+        if self.left:
+            self.player.change_x = -PLAYER_SPEED
+        elif self.right:
+            self.player.change_x = PLAYER_SPEED
+        else:
+            self.player.change_x = 0
         self.physics_engine.update()
         collected = arcade.check_for_collision_with_list(self.player, self.coins)
         for coin in collected:
@@ -107,12 +122,11 @@ class GameView(arcade.View):
             self.up = True
         if key in (arcade.key.DOWN, arcade.key.S):
             self.down = True
-        if key == arcade.key.SPACE and self.physics_engine.can_jump():
+        if key == arcade.key.SPACE and self.physics_engine.can_jump() and not self.on_ladder:
             self.physics_engine.jump(JUMP_STRENGTH)
             arcade.play_sound(self.jump_sound)
         if key == arcade.key.ESCAPE:
-            pause_view = PauseView(self)
-            self.window.show_view(pause_view)
+            self.window.show_view(PauseView(self))
 
     def on_key_release(self, key, modifiers):
         if key in (arcade.key.LEFT, arcade.key.A):
