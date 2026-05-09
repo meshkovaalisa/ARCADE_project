@@ -1,6 +1,7 @@
 import arcade
 from crystal_platformer.constants import *
 from views.pause_view import PauseView
+from arcade.particles import Emitter, EmitBurst, FadeParticle
 
 
 class GameView(arcade.View):
@@ -56,6 +57,9 @@ class GameView(arcade.View):
             font_size=16,
             anchor_x="left"
         )
+        self.jump_sound = arcade.load_sound(JUMP_SOUND)
+        self.coin_sound = arcade.load_sound(COIN_SOUND)
+        self.emitters = []
 
     def on_draw(self):
         self.clear()
@@ -64,6 +68,8 @@ class GameView(arcade.View):
         self.walls.draw()
         self.coins.draw()
         self.player_list.draw()
+        for emitter in self.emitters:
+            emitter.draw()
 
         self.gui_camera.use()
         self.score_text.draw()
@@ -80,10 +86,17 @@ class GameView(arcade.View):
         for coin in collected:
             coin.remove_from_sprite_lists()
             self.score += 1
+            self.score_text.text = f"Счёт: {self.score}"
+            arcade.play_sound(self.coin_sound)
+            self.create_coin_effect(coin.center_x, coin.center_y)
 
         self.gui_camera.position = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         self._update_camera(delta_time)
         self.update_animation(delta_time)
+
+        for emitter in self.emitters:
+            emitter.update(delta_time)
+        self.emitters = [e for e in self.emitters if not e.can_reap()]
 
     def on_key_press(self, key, modifiers):
         if key in (arcade.key.LEFT, arcade.key.A):
@@ -96,6 +109,7 @@ class GameView(arcade.View):
             self.down = True
         if key == arcade.key.SPACE and self.physics_engine.can_jump():
             self.physics_engine.jump(JUMP_STRENGTH)
+            arcade.play_sound(self.jump_sound)
         if key == arcade.key.ESCAPE:
             pause_view = PauseView(self)
             self.window.show_view(pause_view)
@@ -158,3 +172,17 @@ class GameView(arcade.View):
             cam_x + (target_x - cam_x) * CAMERA_LERP,
             cam_y + (target_y - cam_y) * CAMERA_LERP
         )
+
+    def create_coin_effect(self, x, y):
+        emitter = Emitter(
+            center_xy=(x, y),
+            emit_controller=EmitBurst(15),  # 15 частиц
+            particle_factory=lambda e: FadeParticle(
+                filename_or_texture=arcade.make_soft_circle_texture(4, arcade.color.YELLOW),
+                change_xy=arcade.math.rand_in_circle((0.0, 0.0), 4.0),  # Разлетаются в стороны
+                lifetime=0.5,  # Живут полсекунды
+                start_alpha=255,
+                end_alpha=0
+            )
+        )
+        self.emitters.append(emitter)

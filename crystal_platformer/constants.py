@@ -27,3 +27,6 @@ JUMP_STRENGTH = 15
 CAMERA_LERP = 0.12
 DEAD_ZONE_W = 200
 DEAD_ZONE_H = 150
+
+JUMP_SOUND = ":resources:/sounds/jump1.wav"
+COIN_SOUND = ":resources:/sounds/coin1.wav"
