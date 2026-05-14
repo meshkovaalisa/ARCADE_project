@@ -4,6 +4,9 @@ from views.pause_view import PauseView
 from arcade.particles import Emitter, EmitBurst, FadeParticle
 
 
+
+
+
 class GameView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -15,6 +18,7 @@ class GameView(arcade.View):
         self.player.texture = self.idle_texture
         self.player.scale = PLAYER_SCALE
         self.player_speed = PLAYER_SPEED
+        self.is_dead = False
         self.left = False
         self.right = False
         self.up = False
@@ -39,6 +43,12 @@ class GameView(arcade.View):
         self.collision = tile_map.sprite_lists["collision"]
         self.coins = tile_map.sprite_lists.get("coins", arcade.SpriteList())
         self.ladders = tile_map.sprite_lists.get("ladders", arcade.SpriteList())
+        self.traps = tile_map.sprite_lists.get("traps", arcade.SpriteList())
+        self.shooters = tile_map.sprite_lists.get("shooters", arcade.SpriteList())
+
+        self.projectiles = arcade.SpriteList()
+        self.shoot_timer = 0
+        self.shoot_interval = 2.0
 
         self.world_camera = arcade.Camera2D()
         self.gui_camera = arcade.Camera2D()
@@ -61,6 +71,7 @@ class GameView(arcade.View):
         )
         self.jump_sound = arcade.load_sound(JUMP_SOUND)
         self.coin_sound = arcade.load_sound(COIN_SOUND)
+        self.death_sound = arcade.load_sound(DEATH_SOUND)
         self.emitters = []
 
     def on_draw(self):
@@ -69,7 +80,10 @@ class GameView(arcade.View):
         self.world_camera.use()
         self.walls.draw()
         self.ladders.draw()
+        self.traps.draw()
+        self.shooters.draw()
         self.coins.draw()
+        self.projectiles.draw()
         self.player_list.draw()
         for emitter in self.emitters:
             emitter.draw()
@@ -78,6 +92,12 @@ class GameView(arcade.View):
         self.score_text.draw()
 
     def on_update(self, delta_time):
+        if self.is_dead:
+            for emitter in self.emitters:
+                emitter.update(delta_time)
+            if all(e.can_reap() for e in self.emitters):
+                self.setup()
+            return
         self.on_ladder = len(arcade.check_for_collision_with_list(self.player, self.ladders)) > 0
         if self.on_ladder:
             self.physics_engine.gravity_constant = 0
@@ -97,6 +117,27 @@ class GameView(arcade.View):
         else:
             self.player.change_x = 0
         self.physics_engine.update()
+        self.shoot_timer += delta_time
+        if self.shoot_timer >= self.shoot_interval and len(self.shooters) > 0:
+            self.fire_projectiles()
+            self.shoot_timer = 0
+        if arcade.check_for_collision_with_list(self.player, self.traps):
+            self.die()
+            return
+
+        for proj in self.projectiles:
+            proj.center_x += proj.change_x * delta_time
+            proj.center_y += proj.change_y * delta_time
+
+            if arcade.check_for_collision(self.player, proj):
+                self.die()
+                return
+
+        for proj in self.projectiles:
+            if (proj.center_x < -200 or proj.center_x > self.world_width + 200 or
+                    proj.center_y < -200 or proj.center_y > self.world_height + 200):
+                proj.remove_from_sprite_lists()
+
         collected = arcade.check_for_collision_with_list(self.player, self.coins)
         for coin in collected:
             coin.remove_from_sprite_lists()
@@ -114,6 +155,7 @@ class GameView(arcade.View):
         self.emitters = [e for e in self.emitters if not e.can_reap()]
 
     def on_key_press(self, key, modifiers):
+        if self.is_dead: return
         if key in (arcade.key.LEFT, arcade.key.A):
             self.left = True
         if key in (arcade.key.RIGHT, arcade.key.D):
@@ -190,13 +232,68 @@ class GameView(arcade.View):
     def create_coin_effect(self, x, y):
         emitter = Emitter(
             center_xy=(x, y),
-            emit_controller=EmitBurst(15),  # 15 частиц
+            emit_controller=EmitBurst(15),
             particle_factory=lambda e: FadeParticle(
                 filename_or_texture=arcade.make_soft_circle_texture(4, arcade.color.YELLOW),
-                change_xy=arcade.math.rand_in_circle((0.0, 0.0), 4.0),  # Разлетаются в стороны
-                lifetime=0.5,  # Живут полсекунды
+                change_xy=arcade.math.rand_in_circle((0.0, 0.0), 4.0),
+                lifetime=0.5,
                 start_alpha=255,
                 end_alpha=0
             )
         )
         self.emitters.append(emitter)
+
+    def restart_game(self):
+        self.setup()
+
+    def create_death_effect(self, x, y):
+        from arcade.particles import Emitter, EmitBurst, FadeParticle
+
+        emitter = Emitter(
+            center_xy=(x, y),
+            emit_controller=EmitBurst(50),
+            particle_factory=lambda e: FadeParticle(
+                filename_or_texture=arcade.make_soft_circle_texture(6, arcade.color.RED),
+                change_xy=arcade.math.rand_in_circle((0.0, 0.0), 6.0),
+                lifetime=1.5,
+                start_alpha=255,
+                end_alpha=0
+            )
+        )
+        self.emitters.append(emitter)
+
+    def die(self):
+        self.is_dead = True
+        self.player.visible = False
+        self.create_death_effect(self.player.center_x, self.player.center_y)
+        arcade.play_sound(self.death_sound)
+
+    def fire_projectiles(self):
+        for shooter in self.shooters:
+            proj = arcade.SpriteCircle(8, arcade.color.RED)
+            proj.center_x = shooter.center_x
+            proj.center_y = shooter.center_y
+
+            dx = self.player.center_x - proj.center_x
+            dy = self.player.center_y - proj.center_y
+            distance = max(1, (dx ** 2 + dy ** 2) ** 0.5)
+
+            proj.change_x = (dx / distance) * 50
+            proj.change_y = (dy / distance) * 50
+
+            self.projectiles.append(proj)
+
+    def create_shoot_effect(self, x, y):
+        emitter = Emitter(
+            center_xy=(x, y),
+            emit_controller=EmitBurst(8),
+            particle_factory=lambda e: FadeParticle(
+                filename_or_texture=arcade.make_soft_circle_texture(3, arcade.color.ORANGE),
+                change_xy=arcade.math.rand_in_circle((0.0, 0.0), 2.0),
+                lifetime=0.3,
+                start_alpha=255,
+                end_alpha=0
+            )
+        )
+        self.emitters.append(emitter)
+

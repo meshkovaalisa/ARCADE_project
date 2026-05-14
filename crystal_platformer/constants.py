@@ -31,3 +31,5 @@ DEAD_ZONE_H = 150
 
 JUMP_SOUND = ":resources:/sounds/jump1.wav"
 COIN_SOUND = ":resources:/sounds/coin1.wav"
+DEATH_SOUND = ":resources:/sounds/hurt1.wav"
+

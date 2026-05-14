@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="20" height="20" tilewidth="70" tileheight="70" infinite="0" nextlayerid="7" nextobjectid="1">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="20" height="20" tilewidth="70" tileheight="70" infinite="0" nextlayerid="9" nextobjectid="1">
  <tileset firstgid="1" source="tiles.tsx"/>
- <layer id="4" name="collision" width="20" height="20">
+ <layer id="4" name="collision" width="20" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJxjYBjcgAMLxiVOjFp6uI9UtzIw0M591AaUxMVQ9y86n5gwwGbGYAakxiUxYTOYAbFxRko4DGZAbvziwgCOhQQB
+   eJxjYBgagAMJM6CxsanBphZdPbXdRYz9hNQMFUCK/4ayf4mJSwYs8tjEhpp/yY3Toe5fdHFc6oa6f9H5xPgJXQ4APNYDmQ==
   </data>
  </layer>
  <layer id="2" name="walls" width="20" height="20">
   <data encoding="base64" compression="zlib">
-   eJxjYBjcgAsLxiVOjFp6uI9UtzIw0M591AaUxMVQ9y86n5gwwGbGYAakxiUxYTOYAbFxRko4DGZAbvziwgBwmgUB
+   eJxjYBgagAsJM6CxsanBphZdPbXdRYz9hNQMFUCK/4ayf4mJSwYs8tjEhpp/yY3Toe5fdHFc6oa6f9H5xPgJXQ4AynQEfw==
   </data>
  </layer>
  <layer id="6" name="ladders" width="20" height="20">
@@ -18,7 +18,17 @@
  </layer>
  <layer id="5" name="coins" width="20" height="20">
   <data encoding="base64" compression="zlib">
-   eJxjYCANSFJZLSnmjQL6gMEYJwPhpsEYDsQActw9VP2KD+Dy01Dz62B2LwCYGQEU
+   eJxjYKAdqKSSmlFAXzAaJ0MfDPc4pNR/wzV8sPmLln4FAFgKA8k=
+  </data>
+ </layer>
+ <layer id="7" name="traps" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJxjYBjcgAOKCcnjUzMKqAdGwxo34MDBHgWjYDACYtMovjIWAFfvAGk=
+  </data>
+ </layer>
+ <layer id="8" name="shooters" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAPMKSTPaOAemA0zkbBYAaj6ZM0QIvwAgBJ8gDF
   </data>
  </layer>
 </map>
