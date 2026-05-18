@@ -4,9 +4,6 @@ from views.pause_view import PauseView
 from arcade.particles import Emitter, EmitBurst, FadeParticle
 
 
-
-
-
 class GameView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -31,7 +28,13 @@ class GameView(arcade.View):
         self.current_texture = 0
         self.texture_change_time = 0
         self.texture_change_delay = TEXTURE_CHANGE_DELAY
-
+        self.climb_textures = []
+        for i in range(CLIMB_FRAMES_COUNT):
+            try:
+                tex = arcade.load_texture(f"{TEXTURE_PATH_PREFIX}{TEXTURE_FILE_PREFIX}climb{i}.png")
+                self.climb_textures.append(tex)
+            except:
+                pass
         self.player.center_x = SCREEN_WIDTH // 2
         self.player.center_y = SCREEN_HEIGHT // 2
 
@@ -69,10 +72,22 @@ class GameView(arcade.View):
             font_size=16,
             anchor_x="left"
         )
+        self.lives = MAX_LIVES
+        self.is_invulnerable = False
+        self.inv_timer = 0
+        self.lives_text = arcade.Text(
+            f"❤️ {self.lives}",
+            SCREEN_WIDTH - 70,
+            SCREEN_HEIGHT - 30,
+            color=arcade.color.RED,
+            font_size=20,
+            anchor_x="left"
+        )
         self.jump_sound = arcade.load_sound(JUMP_SOUND)
         self.coin_sound = arcade.load_sound(COIN_SOUND)
         self.death_sound = arcade.load_sound(DEATH_SOUND)
         self.emitters = []
+        self.projectile_texture = arcade.load_texture(SAW_TEXTURE)
 
     def on_draw(self):
         self.clear()
@@ -90,15 +105,37 @@ class GameView(arcade.View):
 
         self.gui_camera.use()
         self.score_text.draw()
+        self.lives_text.draw()
 
     def on_update(self, delta_time):
+        if self.is_invulnerable:
+            self.inv_timer -= delta_time
+            self.player.alpha = 100 if int(self.inv_timer * 10) % 2 == 0 else 255
+            if self.inv_timer <= 0:
+                self.is_invulnerable = False
+                self.player.alpha = 255
         if self.is_dead:
             for emitter in self.emitters:
                 emitter.update(delta_time)
             if all(e.can_reap() for e in self.emitters):
                 self.setup()
             return
-        self.on_ladder = len(arcade.check_for_collision_with_list(self.player, self.ladders)) > 0
+        touching_ladders = arcade.check_for_collision_with_list(self.player, self.ladders)
+        was_on_ladder = self.on_ladder
+
+        def is_player_on_ladder(ladder):
+            close_x = abs(ladder.center_x - self.player.center_x) < 15
+
+            ladder_top = ladder.center_y + ladder.height / 2
+            ladder_bottom = ladder.center_y - ladder.height / 2
+            player_center_y = self.player.center_y
+
+            in_y_range = ladder_bottom - 20 < player_center_y < ladder_top + 10
+
+            return close_x and in_y_range
+
+        self.on_ladder = bool(touching_ladders) or any(is_player_on_ladder(l) for l in self.ladders)
+
         if self.on_ladder:
             self.physics_engine.gravity_constant = 0
             if self.up:
@@ -107,9 +144,12 @@ class GameView(arcade.View):
                 self.player.change_y = -LADDER_SPEED
             else:
                 self.player.change_y = 0
+
+            if touching_ladders:
+                nearest = min(touching_ladders, key=lambda l: abs(l.center_x - self.player.center_x))
+                self.player.center_x += (nearest.center_x - self.player.center_x) * 0.2
         else:
             self.physics_engine.gravity_constant = GRAVITY
-
         if self.left:
             self.player.change_x = -PLAYER_SPEED
         elif self.right:
@@ -122,7 +162,7 @@ class GameView(arcade.View):
             self.fire_projectiles()
             self.shoot_timer = 0
         if arcade.check_for_collision_with_list(self.player, self.traps):
-            self.die()
+            self.take_damage()
             return
 
         for proj in self.projectiles:
@@ -130,7 +170,8 @@ class GameView(arcade.View):
             proj.center_y += proj.change_y * delta_time
 
             if arcade.check_for_collision(self.player, proj):
-                self.die()
+                self.take_damage()
+                proj.remove_from_sprite_lists()
                 return
 
         for proj in self.projectiles:
@@ -181,6 +222,15 @@ class GameView(arcade.View):
             self.down = False
 
     def update_animation(self, delta_time):
+        if self.on_ladder and (self.up or self.down) and len(self.climb_textures) > 0:
+            self.texture_change_time += delta_time
+            if self.texture_change_time >= self.texture_change_delay:
+                self.texture_change_time = 0
+                self.current_texture += 1
+                if self.current_texture >= len(self.climb_textures):
+                    self.current_texture = 0
+                self.player.texture = self.climb_textures[self.current_texture]
+            return
         if self.left or self.right:
             self.texture_change_time += delta_time
             if self.texture_change_time >= self.texture_change_delay:
@@ -247,8 +297,6 @@ class GameView(arcade.View):
         self.setup()
 
     def create_death_effect(self, x, y):
-        from arcade.particles import Emitter, EmitBurst, FadeParticle
-
         emitter = Emitter(
             center_xy=(x, y),
             emit_controller=EmitBurst(50),
@@ -270,9 +318,11 @@ class GameView(arcade.View):
 
     def fire_projectiles(self):
         for shooter in self.shooters:
-            proj = arcade.SpriteCircle(8, arcade.color.RED)
+            proj = arcade.Sprite()
+            proj.texture = self.projectile_texture
             proj.center_x = shooter.center_x
             proj.center_y = shooter.center_y
+            proj.scale = SAW_SCALE
 
             dx = self.player.center_x - proj.center_x
             dy = self.player.center_y - proj.center_y
@@ -297,3 +347,23 @@ class GameView(arcade.View):
         )
         self.emitters.append(emitter)
 
+    def take_damage(self):
+        if self.is_invulnerable:
+            return
+        self.lives -= 1
+        self.lives_text.text = f"❤️ {self.lives}"
+        self.is_invulnerable = True
+        self.inv_timer = INVULNERABILITY_TIME
+        self.player.center_y += 10
+        if self.lives <= 0:
+            self.die()
+
+    def reset_player(self):
+        self.player.center_x = SCREEN_WIDTH // 2
+        self.player.center_y = SCREEN_HEIGHT // 2
+        self.player.change_x = 0
+        self.player.change_y = 0
+        self.is_dead = False
+        self.is_invulnerable = False
+        self.player.visible = True
+        self.player.alpha = 255

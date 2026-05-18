@@ -33,3 +33,10 @@ JUMP_SOUND = ":resources:/sounds/jump1.wav"
 COIN_SOUND = ":resources:/sounds/coin1.wav"
 DEATH_SOUND = ":resources:/sounds/hurt1.wav"
 
+SAW_TEXTURE = "assets/saw.png"
+SAW_SCALE = 0.05
+
+MAX_LIVES = 3
+INVULNERABILITY_TIME = 2.0
+CLIMB_FRAMES_COUNT = 3
+
