@@ -48,10 +48,33 @@ class GameView(arcade.View):
         self.ladders = tile_map.sprite_lists.get("ladders", arcade.SpriteList())
         self.traps = tile_map.sprite_lists.get("traps", arcade.SpriteList())
         self.shooters = tile_map.sprite_lists.get("shooters", arcade.SpriteList())
+        self.shooters = tile_map.sprite_lists.get("shooters", arcade.SpriteList())
+
+        self.moving_platforms = arcade.SpriteList()
+        self.platform_trains = []
+
+        raw_tiles = tile_map.sprite_lists.get("moving_platforms", [])
+
+        if raw_tiles:
+            raw_tiles.sort(key=lambda t: t.center_y)
+
+            current_row = []
+            for tile in raw_tiles:
+                if current_row and abs(tile.center_y - current_row[0].center_y) > 10:
+                    self._process_row(current_row)
+                    current_row = []
+                current_row.append(tile)
+            if current_row:
+                self._process_row(current_row)
+
+            for train in self.platform_trains:
+                for tile in train:
+                    if tile not in self.moving_platforms:
+                        self.moving_platforms.append(tile)
 
         self.projectiles = arcade.SpriteList()
         self.shoot_timer = 0
-        self.shoot_interval = 2.0
+        self.shoot_interval = SHOOT_INTERVAL
 
         self.world_camera = arcade.Camera2D()
         self.gui_camera = arcade.Camera2D()
@@ -71,6 +94,14 @@ class GameView(arcade.View):
             color=arcade.color.WHITE,
             font_size=16,
             anchor_x="left"
+        )
+        self.pause_hint = arcade.Text(
+            "ESC — пауза",
+            SCREEN_WIDTH - 20,
+            20,
+            color=NEON_BLUE,
+            font_size=12,
+            anchor_x="right"
         )
         self.lives = MAX_LIVES
         self.is_invulnerable = False
@@ -96,6 +127,7 @@ class GameView(arcade.View):
         self.walls.draw()
         self.ladders.draw()
         self.traps.draw()
+        self.moving_platforms.draw()
         self.shooters.draw()
         self.coins.draw()
         self.projectiles.draw()
@@ -106,6 +138,7 @@ class GameView(arcade.View):
         self.gui_camera.use()
         self.score_text.draw()
         self.lives_text.draw()
+        self.pause_hint.draw()
 
     def on_update(self, delta_time):
         if self.is_invulnerable:
@@ -120,22 +153,17 @@ class GameView(arcade.View):
             if all(e.can_reap() for e in self.emitters):
                 self.setup()
             return
+
+        if self.on_ladder and (self.left or self.right):
+            self.on_ladder = False
+            self.player.center_x += 5 if self.right else -5
+
         touching_ladders = arcade.check_for_collision_with_list(self.player, self.ladders)
-        was_on_ladder = self.on_ladder
 
-        def is_player_on_ladder(ladder):
-            close_x = abs(ladder.center_x - self.player.center_x) < 15
-
-            ladder_top = ladder.center_y + ladder.height / 2
-            ladder_bottom = ladder.center_y - ladder.height / 2
-            player_center_y = self.player.center_y
-
-            in_y_range = ladder_bottom - 20 < player_center_y < ladder_top + 10
-
-            return close_x and in_y_range
-
-        self.on_ladder = bool(touching_ladders) or any(is_player_on_ladder(l) for l in self.ladders)
-
+        if touching_ladders and not (self.left or self.right):
+            self.on_ladder = True
+        else:
+            self.on_ladder = False
         if self.on_ladder:
             self.physics_engine.gravity_constant = 0
             if self.up:
@@ -144,19 +172,44 @@ class GameView(arcade.View):
                 self.player.change_y = -LADDER_SPEED
             else:
                 self.player.change_y = 0
-
-            if touching_ladders:
+            if touching_ladders and not (self.left or self.right):
                 nearest = min(touching_ladders, key=lambda l: abs(l.center_x - self.player.center_x))
                 self.player.center_x += (nearest.center_x - self.player.center_x) * 0.2
         else:
             self.physics_engine.gravity_constant = GRAVITY
+
         if self.left:
             self.player.change_x = -PLAYER_SPEED
         elif self.right:
             self.player.change_x = PLAYER_SPEED
         else:
             self.player.change_x = 0
+
         self.physics_engine.update()
+
+        for train in self.platform_trains:
+            leader = train[0]
+
+            check_x = train[-1].right + 3 if leader.direction > 0 else train[0].left - 3
+            if arcade.get_sprites_at_point((check_x, leader.center_y), self.collision):
+                leader.direction *= -1
+            else:
+                leader.center_x += leader.speed * leader.direction
+                if abs(leader.center_x - leader.start_x) > leader.distance:
+                    leader.direction *= -1
+
+            for i, tile in enumerate(train):
+                tile.center_x = leader.center_x + leader.offsets[i]
+
+            if (self.player.bottom <= train[0].top + 12 and
+                    self.player.bottom >= train[0].top - 5 and
+                    self.player.center_x > train[0].left and
+                    self.player.center_x < train[-1].right and
+                    self.player.change_y <= 0):
+                self.player.bottom = train[0].top
+                self.player.change_y = 0
+                self.player.center_x += leader.speed * leader.direction
+
         self.shoot_timer += delta_time
         if self.shoot_timer >= self.shoot_interval and len(self.shooters) > 0:
             self.fire_projectiles()
@@ -205,9 +258,13 @@ class GameView(arcade.View):
             self.up = True
         if key in (arcade.key.DOWN, arcade.key.S):
             self.down = True
-        if key == arcade.key.SPACE and self.physics_engine.can_jump() and not self.on_ladder:
-            self.physics_engine.jump(JUMP_STRENGTH)
-            arcade.play_sound(self.jump_sound)
+        if key == arcade.key.SPACE and not self.on_ladder:
+            on_ground = self.physics_engine.can_jump()
+            on_platform = self.is_on_moving_platform()
+
+            if on_ground or on_platform:
+                self.player.change_y = JUMP_STRENGTH
+                arcade.play_sound(self.jump_sound)
         if key == arcade.key.ESCAPE:
             self.window.show_view(PauseView(self))
 
@@ -328,8 +385,8 @@ class GameView(arcade.View):
             dy = self.player.center_y - proj.center_y
             distance = max(1, (dx ** 2 + dy ** 2) ** 0.5)
 
-            proj.change_x = (dx / distance) * 50
-            proj.change_y = (dy / distance) * 50
+            proj.change_x = (dx / distance) * 30
+            proj.change_y = (dy / distance) * 30
 
             self.projectiles.append(proj)
 
@@ -367,3 +424,35 @@ class GameView(arcade.View):
         self.is_invulnerable = False
         self.player.visible = True
         self.player.alpha = 255
+
+    def _process_row(self, row_tiles):
+        row_tiles.sort(key=lambda t: t.center_x)
+
+        current_train = [row_tiles[0]]
+        for i in range(1, len(row_tiles)):
+            prev_tile = current_train[-1]
+            curr_tile = row_tiles[i]
+
+            if abs(curr_tile.left - prev_tile.right) < 5:
+                current_train.append(curr_tile)
+            else:
+                self._setup_train(current_train)
+                current_train = [curr_tile]
+        self._setup_train(current_train)
+
+    def _setup_train(self, train):
+        leader = train[0]
+        leader.start_x = leader.center_x
+        leader.speed = 2
+        leader.direction = 1
+        leader.distance = 150
+        leader.offsets = [tile.center_x - leader.center_x for tile in train]
+        self.platform_trains.append(train)
+
+    def is_on_moving_platform(self):
+        for train in self.platform_trains:
+            if (self.player.center_x > train[0].left and
+                self.player.center_x < train[-1].right and
+                abs(self.player.bottom - train[0].top) < 20):
+                return True
+        return False
