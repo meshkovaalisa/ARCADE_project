@@ -1,25 +1,30 @@
 import arcade
 from crystal_platformer.constants import *
 from views.pause_view import PauseView
+from views.level_complete_view import LevelCompleteView
 from arcade.particles import Emitter, EmitBurst, FadeParticle
 
 
 class GameView(arcade.View):
-    def __init__(self):
+    def __init__(self, level=1):
         super().__init__()
-        self.setup()
+        self.setup(level)
 
-    def setup(self):
+    def setup(self, level=1):
+        self.current_level = level
         self.idle_texture = arcade.load_texture(f"{TEXTURE_PATH_PREFIX}{TEXTURE_FILE_PREFIX}idle.png")
         self.player = arcade.Sprite()
         self.player.texture = self.idle_texture
         self.player.scale = PLAYER_SCALE
         self.player_speed = PLAYER_SPEED
         self.is_dead = False
+        self.has_shield = False
         self.left = False
         self.right = False
         self.up = False
         self.down = False
+        self.has_key = False
+        self.door_open = False
         self.score = 0
         self.walk_textures = []
         for i in range(WALK_FRAMES_COUNT):
@@ -30,25 +35,38 @@ class GameView(arcade.View):
         self.texture_change_delay = TEXTURE_CHANGE_DELAY
         self.climb_textures = []
         for i in range(CLIMB_FRAMES_COUNT):
-            try:
-                tex = arcade.load_texture(f"{TEXTURE_PATH_PREFIX}{TEXTURE_FILE_PREFIX}climb{i}.png")
-                self.climb_textures.append(tex)
-            except:
-                pass
-        self.player.center_x = SCREEN_WIDTH // 2
-        self.player.center_y = SCREEN_HEIGHT // 2
+            tex = arcade.load_texture(f"{TEXTURE_PATH_PREFIX}{TEXTURE_FILE_PREFIX}climb{i}.png")
+            self.climb_textures.append(tex)
+
+        if level == 1:
+            self.player.center_x = SCREEN_WIDTH // 2
+            self.player.center_y = SCREEN_HEIGHT // 2
+        elif level == 2:
+            self.player.center_x = 70
+            self.player.center_y = 1390
 
         self.player_list = arcade.SpriteList()
         self.player_list.append(self.player)
 
-        tile_map = arcade.load_tilemap(LEVEL_1, scaling=TILE_SCALING)
+        level_path = LEVEL_1 if level == 1 else LEVEL_2
+        tile_map = arcade.load_tilemap(level_path, scaling=TILE_SCALING)
         self.walls = tile_map.sprite_lists["walls"]
         self.collision = tile_map.sprite_lists["collision"]
         self.coins = tile_map.sprite_lists.get("coins", arcade.SpriteList())
         self.ladders = tile_map.sprite_lists.get("ladders", arcade.SpriteList())
         self.traps = tile_map.sprite_lists.get("traps", arcade.SpriteList())
         self.shooters = tile_map.sprite_lists.get("shooters", arcade.SpriteList())
-        self.shooters = tile_map.sprite_lists.get("shooters", arcade.SpriteList())
+        self.shields = tile_map.sprite_lists.get("shields", arcade.SpriteList())
+        self.shield_texture = arcade.load_texture(SHIELD_TEXTURE)
+        self.key = tile_map.sprite_lists.get("key", arcade.SpriteList())
+        self.door = tile_map.sprite_lists.get("door", arcade.SpriteList())
+
+        self.collision.append(self.door[0])
+
+        key_path = KEY_TEXTURE if level == 1 else KEY_TEXTURE_2
+        self.key_texture = arcade.load_texture(key_path)
+
+        self.portal = tile_map.sprite_lists.get("portal", arcade.SpriteList())
 
         self.moving_platforms = arcade.SpriteList()
         self.platform_trains = []
@@ -103,6 +121,7 @@ class GameView(arcade.View):
             font_size=12,
             anchor_x="right"
         )
+
         self.lives = MAX_LIVES
         self.is_invulnerable = False
         self.inv_timer = 0
@@ -114,6 +133,17 @@ class GameView(arcade.View):
             font_size=20,
             anchor_x="left"
         )
+
+        self.shield_text = arcade.Text(
+            "🛡️",
+            SCREEN_WIDTH - 120,
+            SCREEN_HEIGHT - 30,
+            color=arcade.color.CYAN,
+            font_size=20,
+            anchor_x="left"
+        )
+        self.shield_text.visible = False
+
         self.jump_sound = arcade.load_sound(JUMP_SOUND)
         self.coin_sound = arcade.load_sound(COIN_SOUND)
         self.death_sound = arcade.load_sound(DEATH_SOUND)
@@ -132,6 +162,10 @@ class GameView(arcade.View):
         self.coins.draw()
         self.projectiles.draw()
         self.player_list.draw()
+        self.shields.draw()
+        self.door.draw()
+        self.key.draw()
+        self.portal.draw()
         for emitter in self.emitters:
             emitter.draw()
 
@@ -139,6 +173,11 @@ class GameView(arcade.View):
         self.score_text.draw()
         self.lives_text.draw()
         self.pause_hint.draw()
+        self.shield_text.visible = self.has_shield
+        if self.has_shield:
+            self.shield_text.draw()
+        if self.has_key:
+            arcade.draw_texture_rect(self.key_texture, arcade.XYWH(SCREEN_WIDTH - 170, SCREEN_HEIGHT - 30, 40, 40))
 
     def on_update(self, delta_time):
         if self.is_invulnerable:
@@ -151,12 +190,12 @@ class GameView(arcade.View):
             for emitter in self.emitters:
                 emitter.update(delta_time)
             if all(e.can_reap() for e in self.emitters):
-                self.setup()
+                self.setup(self.current_level)
             return
 
         if self.on_ladder and (self.left or self.right):
             self.on_ladder = False
-            self.player.center_x += 5 if self.right else -5
+            self.player.center_x += LADDER_SPEED if self.right else -LADDER_SPEED
 
         touching_ladders = arcade.check_for_collision_with_list(self.player, self.ladders)
 
@@ -218,16 +257,15 @@ class GameView(arcade.View):
             self.take_damage()
             return
 
-        for proj in self.projectiles:
+        for proj in self.projectiles[:]:
             proj.center_x += proj.change_x * delta_time
             proj.center_y += proj.change_y * delta_time
 
             if arcade.check_for_collision(self.player, proj):
                 self.take_damage()
                 proj.remove_from_sprite_lists()
-                return
+                continue
 
-        for proj in self.projectiles:
             if (proj.center_x < -200 or proj.center_x > self.world_width + 200 or
                     proj.center_y < -200 or proj.center_y > self.world_height + 200):
                 proj.remove_from_sprite_lists()
@@ -239,6 +277,23 @@ class GameView(arcade.View):
             self.score_text.text = f"Счёт: {self.score}"
             arcade.play_sound(self.coin_sound)
             self.create_coin_effect(coin.center_x, coin.center_y)
+        if not self.has_shield:
+            collected_shields = arcade.check_for_collision_with_list(self.player, self.shields)
+            for shield in collected_shields:
+                shield.remove_from_sprite_lists()
+                self.has_shield = True
+
+        if not self.has_key and len(self.key) > 0:
+            if arcade.check_for_collision_with_list(self.player, self.key):
+                self.key[0].remove_from_sprite_lists()
+                self.has_key = True
+
+        if self.score >= 5 and not self.door_open and len(self.door) > 0:
+            self.door_open = True
+            door_tile = self.door[0]
+            if door_tile in self.collision:
+                self.collision.remove(door_tile)
+            door_tile.remove_from_sprite_lists()
 
         self.gui_camera.position = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         self._update_camera(delta_time)
@@ -247,6 +302,10 @@ class GameView(arcade.View):
         for emitter in self.emitters:
             emitter.update(delta_time)
         self.emitters = [e for e in self.emitters if not e.can_reap()]
+        if arcade.check_for_collision_with_list(self.player, self.portal):
+            if self.has_key:
+                self.window.show_view(LevelCompleteView(level=self.current_level, score=self.score))
+                return
 
     def on_key_press(self, key, modifiers):
         if self.is_dead: return
@@ -337,6 +396,8 @@ class GameView(arcade.View):
         )
 
     def create_coin_effect(self, x, y):
+        if len(self.emitters) > 10:
+            return
         emitter = Emitter(
             center_xy=(x, y),
             emit_controller=EmitBurst(15),
@@ -407,6 +468,11 @@ class GameView(arcade.View):
     def take_damage(self):
         if self.is_invulnerable:
             return
+        if self.has_shield:
+            self.has_shield = False
+            self.is_invulnerable = True
+            self.inv_timer = 0.5
+            return
         self.lives -= 1
         self.lives_text.text = f"❤️ {self.lives}"
         self.is_invulnerable = True
@@ -452,7 +518,7 @@ class GameView(arcade.View):
     def is_on_moving_platform(self):
         for train in self.platform_trains:
             if (self.player.center_x > train[0].left and
-                self.player.center_x < train[-1].right and
-                abs(self.player.bottom - train[0].top) < 20):
+                    self.player.center_x < train[-1].right and
+                    abs(self.player.bottom - train[0].top) < 20):
                 return True
         return False

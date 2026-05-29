@@ -19,6 +19,7 @@ WALK_FRAMES_COUNT = 8
 TEXTURE_CHANGE_DELAY = 0.1
 
 LEVEL_1 = "maps/level1.tmx"
+LEVEL_2 = "maps/level2.tmx"
 TILE_SCALING = 0.5
 MOVING_PLATFORM_SCALE = 0.6
 
@@ -34,7 +35,11 @@ JUMP_SOUND = ":resources:/sounds/jump1.wav"
 COIN_SOUND = ":resources:/sounds/coin1.wav"
 DEATH_SOUND = ":resources:/sounds/hurt1.wav"
 
+SHIELD_TEXTURE = "assets/shield.png"
+KEY_TEXTURE = "assets/key.png"
+KEY_TEXTURE_2 = "assets/key_green.png"
 SAW_TEXTURE = "assets/saw.png"
+
 SAW_SCALE = 0.05
 
 MAX_LIVES = 3
@@ -45,3 +50,5 @@ SHOOT_INTERVAL = 4.0
 NEON_BLUE = (0, 200, 255)
 NEON_GREEN = (0, 255, 150)
 NEON_PINK = (255, 50, 150)
+
+

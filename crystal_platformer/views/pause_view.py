@@ -9,7 +9,7 @@ class PauseView(arcade.View):
 
         self.title = arcade.Text(
             "⏸ ПАУЗА",
-            SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 40,
+            SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40,
             color=(0, 200, 255),
             font_size=40,
             anchor_x="center",
@@ -24,11 +24,11 @@ class PauseView(arcade.View):
         ]
 
         self.control_texts = []
-        y_pos = SCREEN_HEIGHT / 2 - 10
+        y_pos = SCREEN_HEIGHT // 2 - 10
         for i, line in enumerate(controls):
             text = arcade.Text(
                 line,
-                SCREEN_WIDTH / 2, y_pos - i * 25,
+                SCREEN_WIDTH // 2, y_pos - i * 25,
                 color=arcade.color.WHITE,
                 font_size=16,
                 anchor_x="center"
@@ -46,7 +46,7 @@ class PauseView(arcade.View):
 
         hint = arcade.Text(
             "Нажми ESC чтобы продолжить",
-            SCREEN_WIDTH / 2, 30,
+            SCREEN_WIDTH // 2, 30,
             color=arcade.color.GRAY,
             font_size=12,
             anchor_x="center"

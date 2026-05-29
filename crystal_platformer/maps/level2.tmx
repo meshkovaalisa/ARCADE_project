@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="42" height="42" tilewidth="70" tileheight="70" infinite="0" nextlayerid="12" nextobjectid="1">
+ <tileset firstgid="1" source="tiles.tsx"/>
+ <tileset firstgid="157" source="shield.tsx"/>
+ <tileset firstgid="158" source="key_green.tsx"/>
+ <layer id="1" name="shooters" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJzt1zENAAAIBLG3hH9zeGAhgVbBrZcAcEFtBwAAAAx4GQDggwb8TwBj
+  </data>
+ </layer>
+ <layer id="3" name="door" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJztzjEBAAAMAiADrH/etdAHEpBA160DAAAAAAAARQ9I7wAN
+  </data>
+ </layer>
+ <layer id="4" name="portal" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJztzjEBAAAMAiCzrn+IxfAQEpCw4NoBAAAAAACAUQ/uZwBj
+  </data>
+ </layer>
+ <layer id="5" name="shields" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJzt1VsRACAIBED7d7CrFfTDQbzdBDxuYIzeZnUBjzAHAHZU/Qt/iltki2oyCHSQdqvS+v2VPeawa04k5CWhx1QLYtQHXQ==
+  </data>
+ </layer>
+ <layer id="6" name="moving_platforms" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJzt1MEJACAMA8DO4xjuP1RdQPQntXfQfwkkEQDwr7luvH4CmtC3s9uMZAmwZyOBquwXQG8Jq/wCiQ==
+  </data>
+ </layer>
+ <layer id="2" name="key" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJztzjEBAAAMAiD7h1jWxfAQEpAAAAAAAACw4NqBUQ8DrwCf
+  </data>
+ </layer>
+ <layer id="8" name="coins" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJztmMsVwCAMw1i723cB2vIgTYyRzvyciAO0psMVPA78mXUBh+KoqCX904XeaJLVl6r+u3rnmmuEt+wn1wVq6Dk34+HKWwfvYZQ/Xfla+yRPXbI65HDIEIFCHVbOMDJXIeMOqNSJP17YgUxPs11/2o87V88NMQcRBQ==
+  </data>
+ </layer>
+ <layer id="9" name="ladders" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJztlcENxDAIBFPEFbD9V0Fpd8+TJdsLXmwieV6ORGaJIMnzXC71+LwkDwJHNC96X9Txz+xZoxnonKP8HMbmOb3LjsZnbJ7Tu+yI5rWMdgad8wlG+eicT8Dms3VZsPls3U52/4ei4HQDJDjdAAlON+Ck3dOqe4vJdRVwMNszOyS6iWwT6tLcSlemW+mq+v63IHE2M5zvmSW1Ic321KrxZHtq1XiyPbVZMHuKAn2Cq7HcLtbY8d1UZEDgIDJM4EgHop3Knj1EfUIhGftN5JGRORsUde10X2rwBYYvGHU=
+  </data>
+ </layer>
+ <layer id="10" name="walls" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJzlVlEKQCEI8wDd/7zvN0JzaqbxBkFRzJWzIuqFUS1AwSBd4wBaJk7FOKl35eF4o/FWflTTYMYRDdJeOU4pJqrlhp+4mJ7YGf5HOT116NFaWfOdwNXV3D+tN+IDZP0NbVFY6/K2RyUN61jTFdGNvM0ar/estBjVufDAkotX9mSBJZ+Z7580p635GzqeA+cN7/3CcZLQt/hV8pCFC9HdGa/p7K43+084x0FqwcPn1Zz9LiDx0PWVsNxTFTjx/9zNRfdVfT47dMjfqmMdZzSiO3vumHMOVR7Y5cXy5+ngYQte0jrj9fO21j/yb5bO4qQ/EQ7kzvPEI6GP1CgJc53xAdsPEL0=
+  </data>
+ </layer>
+ <layer id="7" name="traps" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJzt1bEOABAMRdGO/f8vNhOCRKtt7pksKF5KBPCjDutb73EqUi3AD+TfF/edD/9ELZHeM0od8DHL3i4DL/MaKfvAiGzmVbW3VD0XAKBn1etV6v0luhjfzs2iAYYkAPk=
+  </data>
+ </layer>
+ <layer id="11" name="collision" width="42" height="42">
+  <data encoding="base64" compression="zlib">
+   eJzdVkkOxDAI49j/v7iaa8RilgBTpFzaBDssJg8RPX+yNpjGZctdLAyUQyXf0w/n98TzYp/+UU4nXgSX8yHhSBykMxW59O61/ET8obGN3An16clxJPaTPa/969ZPqY+RXsjgReoA2W99q+CWNa+ObZixlgajPRbBQ5Z21msWRlUuOnPpyUW2j6ZM4+nJ540+k3SWlO/TNsknohW3jauN7HyRdFXC474jdVtR+5tq82df4bmFL8LzZq95egHhUKHlmbkQwfVibXmHeLQli9FxNvJeyPC83VsaJrpv6j0gxRqZg5lF5LtzND7dMc3w7KwBJC8aJyu31TyrrdpvV+6y8d6iMxYX9I7avsr6ROYRonmcPwsPxeF8ILy2rReM1BBZ
+  </data>
+ </layer>
+</map>
